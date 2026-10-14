@@ -96,6 +96,11 @@ export abstract class Enemy {
   protected mat: THREE.MeshStandardMaterial;
   protected push = new THREE.Vector3();
 
+  /** Geglättete horizontale Geschwindigkeit, für Animationen. */
+  protected speed = 0;
+  protected animT = 0;
+  private lastX = 0;
+  private lastZ = 0;
   private flash = 0;
   private clock = 0;
   private deathT = 0;
@@ -107,6 +112,8 @@ export abstract class Enemy {
     protected cfg: EnemyConfig,
   ) {
     this.position = home.clone();
+    this.lastX = home.x;
+    this.lastZ = home.z;
     this.radius = cfg.radius;
     this.height = cfg.height;
     this.maxHp = this.hp = cfg.maxHp;
@@ -146,6 +153,8 @@ export abstract class Enemy {
     this.state = 'idle';
     this.position.copy(this.home);
     this.push.set(0, 0, 0);
+    this.lastX = this.position.x;
+    this.lastZ = this.position.z;
     this.mat.color.setHex(this.cfg.color);
     this.onReset();
   }
@@ -193,10 +202,19 @@ export abstract class Enemy {
       }
     }
     ctx.colliders.resolve(this.position, this.radius, 0);
+
+    const moved = Math.hypot(this.position.x - this.lastX, this.position.z - this.lastZ);
+    this.speed += (moved / Math.max(dt, 1e-4) - this.speed) * Math.min(1, dt * 10);
+    this.lastX = this.position.x;
+    this.lastZ = this.position.z;
+    this.animT += dt;
+    this.animate(dt);
     this.syncVisuals();
   }
 
   protected abstract think(dt: number, ctx: EnemyContext): void;
+  /** Wird jeden Frame nach der Bewegung aufgerufen, um das Modell zu animieren. */
+  protected animate(_dt: number) {}
   protected onDeath() {}
   protected onReset() {}
 

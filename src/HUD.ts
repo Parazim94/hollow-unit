@@ -27,7 +27,7 @@ export class HUD {
         #hud-hp .track { margin-top: 4px; height: 6px; background: rgba(74,70,60,.25); }
         #hud-hp .fill { height: 100%; width: 100%; background: #4a463c; transition: width .15s; }
         #hud-dot { position: fixed; left: 50%; top: 50%; width: 4px; height: 4px; margin: -2px 0 0 -2px; background: #4a463c; opacity: .5; pointer-events: none; }
-        #hud-boss { position: fixed; left: 50%; bottom: 48px; width: min(560px, 80vw); transform: translateX(-50%); display: none; font: 12px monospace; color: #4a463c; letter-spacing: .3em; text-align: center; }
+        #hud-boss { position: fixed; left: 50%; top: 22px; width: min(560px, 80vw); transform: translateX(-50%); display: none; font: 12px monospace; color: #4a463c; letter-spacing: .3em; text-align: center; }
         #hud-boss .track { margin-top: 6px; height: 8px; background: rgba(74,70,60,.25); }
         #hud-boss .fill { height: 100%; width: 100%; background: #8a3a2e; transition: width .15s; }
         #hud-prompt { position: fixed; left: 50%; bottom: 14vh; transform: translateX(-50%); display: none; font: 14px monospace; letter-spacing: .3em; color: #2b2923; background: rgba(212,205,182,.9); padding: 8px 16px; border: 1px solid #4a463c; }
