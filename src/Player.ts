@@ -94,6 +94,10 @@ export class Player {
     return true;
   }
 
+  heal() {
+    this.hp = MAX_HP;
+  }
+
   /** Rückstoß in Richtung (dx, dz) (normalisiert). */
   knock(dx: number, dz: number, force: number) {
     this.velocity.x = dx * force;

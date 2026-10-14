@@ -1,5 +1,5 @@
 export type SoundName =
-  | 'swing' | 'hit' | 'shoot' | 'dodge' | 'jump' | 'hurt' | 'kill' | 'warn' | 'slam';
+  | 'blip' | 'swing' | 'hit' | 'shoot' | 'dodge' | 'jump' | 'hurt' | 'kill' | 'warn' | 'slam';
 
 // A-Moll-Pentatonik, zwei Oktaven
 const SCALE = [220, 261.63, 293.66, 329.63, 392, 440, 523.25, 587.33, 659.25, 783.99];
@@ -48,6 +48,9 @@ export class AudioEngine {
     const c = this.ctx;
     if (!c || this.muted) return;
     switch (name) {
+      case 'blip':
+        this.tone('square', 1500, 1400, 0.03, 0.025);
+        break;
       case 'swing':
         this.noise(0.18, 'bandpass', 600, 2400, 0.25);
         break;

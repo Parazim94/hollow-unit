@@ -19,6 +19,8 @@ export class Input {
   private padHeavy = false;
   private padRestart = false;
   private padPodHeld = false;
+  private padInteract = false;
+  private padFire = false;
 
   constructor(canvas: HTMLElement) {
     window.addEventListener('keydown', (e) => {
@@ -54,6 +56,7 @@ export class Input {
     const pad = this.pad;
     this.padJump = this.padDodge = this.padLight = this.padHeavy = this.padRestart = false;
     this.padPodHeld = false;
+    this.padInteract = this.padFire = false;
     if (pad) {
       const down = pad.buttons.map((b) => b.pressed);
       const edge = (i: number) => down[i] && !this.padPrev[i];
@@ -63,6 +66,8 @@ export class Input {
       this.padHeavy = edge(3); // Y
       this.padRestart = edge(9); // Start
       this.padPodHeld = !!(down[4] || down[6]); // LB / LT
+      this.padInteract = edge(12); // Steuerkreuz oben
+      this.padFire = !!(down[0] || down[7]); // A / RT (Hacking)
       this.padPrev = down;
     } else {
       this.padPrev = [];
@@ -130,6 +135,41 @@ export class Input {
   /** Pod-Schuss (gehalten): E / LB / LT */
   podHeld() {
     return this.keys.has('KeyE') || this.padPodHeld;
+  }
+
+  /** Terminal benutzen: F / Steuerkreuz oben */
+  interactPressed() {
+    return this.justPressed.has('KeyF') || this.padInteract;
+  }
+
+  /** Pause: P / Start */
+  pausePressed() {
+    return this.justPressed.has('KeyP') || this.padRestart;
+  }
+
+  /** Menü und Dialoge bestätigen: Enter / Leertaste / linke Maustaste / A */
+  confirmPressed() {
+    return (
+      this.justPressed.has('Enter') ||
+      this.justPressed.has('NumpadEnter') ||
+      this.justPressed.has('Space') ||
+      this.justPressed.has('Mouse0') ||
+      this.padJump
+    );
+  }
+
+  isDown(code: string) {
+    return this.keys.has(code);
+  }
+
+  padFireHeld() {
+    return this.padFire;
+  }
+
+  /** Rechter Stick roh (x rechts, y unten), mit Deadzone. */
+  getAimStick(): { x: number; y: number } {
+    const pad = this.pad;
+    return pad ? { x: dz(pad.axes[2] ?? 0), y: dz(pad.axes[3] ?? 0) } : { x: 0, y: 0 };
   }
 
   restartPressed() {
