@@ -43,7 +43,7 @@ export class Game {
   private renderer: THREE.WebGLRenderer;
   private scene = new THREE.Scene();
   private camera: THREE.PerspectiveCamera;
-  private clock = new THREE.Clock();
+  private timer = new THREE.Timer();
   private input: Input;
   private cameraRig: CameraRig;
   private player: Player;
@@ -66,10 +66,10 @@ export class Game {
 
   constructor() {
     this.renderer = new THREE.WebGLRenderer({ antialias: true });
-    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
     this.renderer.setSize(window.innerWidth, window.innerHeight);
     this.renderer.shadowMap.enabled = true;
-    this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    this.renderer.shadowMap.type = THREE.PCFShadowMap;
     document.body.appendChild(this.renderer.domElement);
 
     this.camera = new THREE.PerspectiveCamera(
@@ -109,6 +109,12 @@ export class Game {
       if (!locked && this.state === 'playing' && !this.player.dead) this.pause();
     });
     window.addEventListener('resize', this.onResize);
+  }
+
+  /** Shader vorab kompilieren und ein paar Frames rendern, damit es beim Start nicht ruckelt. */
+  async warmup() {
+    await this.renderer.compileAsync(this.scene, this.camera);
+    for (let i = 0; i < 3; i++) this.post.render(i * 0.016, 0.016);
   }
 
   start() {
@@ -178,13 +184,14 @@ export class Game {
 
   private loop = () => {
     // Delta-Time begrenzen, damit Tab-Wechsel keine riesigen Sprünge erzeugen
-    let dt = Math.min(this.clock.getDelta(), 0.05);
+    this.timer.update();
+    let dt = Math.min(this.timer.getDelta(), 0.05);
     // Hitstop: Spiel kurz fast einfrieren, das betont Treffer
     if (fx.hitstop > 0) {
       fx.hitstop -= dt;
       dt *= 0.05;
     }
-    const t = this.clock.elapsedTime;
+    const t = this.timer.getElapsed();
     this.input.poll();
 
     switch (this.state) {

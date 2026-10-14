@@ -3,13 +3,25 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%231e1c18'/%3E%3Crect x='9' y='9' width='14' height='14' fill='none' stroke='%23d4cdb6' stroke-width='2'/%3E%3Crect x='14' y='14' width='4' height='4' fill='%23c0392b'/%3E%3C/svg%3E" />
     <title>HOLLOW Unit</title>
     <style>
       html, body { margin: 0; height: 100%; overflow: hidden; background: #d4cdb6; }
       canvas { display: block; }
+      #loader { position: fixed; inset: 0; z-index: 100; display: flex; flex-direction: column; align-items: center; justify-content: center;
+        background: #1e1c18; color: #d4cdb6; font-family: monospace; transition: opacity .6s; }
+      #loader h1 { margin: 0 0 28px; font-size: clamp(24px, 5vw, 44px); font-weight: 400; letter-spacing: .35em; padding-left: .35em; }
+      #loader .track { width: min(320px, 70vw); height: 4px; background: rgba(212,205,182,.2); }
+      #loader .bar { height: 100%; width: 0; background: #d4cdb6; transition: width .25s; }
+      #loader small { margin-top: 14px; font-size: 11px; letter-spacing: .3em; opacity: .6; }
     </style>
   </head>
   <body>
+    <div id="loader">
+      <h1>HOLLOW UNIT</h1>
+      <div class="track"><div class="bar" id="loader-bar"></div></div>
+      <small id="loader-text">LADE SYSTEME</small>
+    </div>
     <script type="module" src="/src/main.ts"></script>
   </body>
 </html>
