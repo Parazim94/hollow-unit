@@ -1,5 +1,5 @@
 export type SoundName =
-  | 'blip' | 'swing' | 'hit' | 'shoot' | 'dodge' | 'jump' | 'hurt' | 'kill' | 'warn' | 'slam';
+  | 'step' | 'land' | 'blip' | 'swing' | 'hit' | 'shoot' | 'dodge' | 'jump' | 'hurt' | 'kill' | 'warn' | 'slam';
 
 // A-Moll-Pentatonik, zwei Oktaven
 const SCALE = [220, 261.63, 293.66, 329.63, 392, 440, 523.25, 587.33, 659.25, 783.99];
@@ -48,6 +48,14 @@ export class AudioEngine {
     const c = this.ctx;
     if (!c || this.muted) return;
     switch (name) {
+      case 'step':
+        this.noise(0.06, 'lowpass', 1200, 200, 0.1);
+        this.tone('sine', 90, 60, 0.05, 0.07);
+        break;
+      case 'land':
+        this.noise(0.16, 'lowpass', 1500, 150, 0.3);
+        this.tone('sine', 70, 35, 0.16, 0.25);
+        break;
       case 'blip':
         this.tone('square', 1500, 1400, 0.03, 0.025);
         break;
@@ -129,6 +137,7 @@ export class AudioEngine {
     this.reverb.connect(wet).connect(this.musicBus);
 
     this.startDrone();
+    this.startWind();
     this.nextNote = c.currentTime + 0.2;
     window.setInterval(() => this.schedule(), 100);
   }
@@ -159,6 +168,29 @@ export class AudioEngine {
     lfoGain.gain.value = 120;
     lfo.connect(lfoGain).connect(this.droneFilter.frequency);
     lfo.start();
+  }
+
+  /** Leises Windrauschen als Dauer-Atmosphäre. */
+  private startWind() {
+    const c = this.ctx!;
+    const src = c.createBufferSource();
+    src.buffer = this.noiseBuf;
+    src.loop = true;
+    const filt = c.createBiquadFilter();
+    filt.type = 'bandpass';
+    filt.frequency.value = 420;
+    filt.Q.value = 0.5;
+    const gain = c.createGain();
+    gain.gain.value = 0.05;
+    // Böen: langsames Auf- und Abschwellen
+    const lfo = c.createOscillator();
+    const lfoGain = c.createGain();
+    lfo.frequency.value = 0.09;
+    lfoGain.gain.value = 0.03;
+    lfo.connect(lfoGain).connect(gain.gain);
+    lfo.start();
+    src.connect(filt).connect(gain).connect(this.musicBus);
+    src.start();
   }
 
   private schedule() {

@@ -14,6 +14,9 @@ const FilmShader = {
     glitch: { value: 0 },
     grain: { value: 0.07 },
     vignette: { value: 0.45 },
+    fade: { value: 0 },
+    desat: { value: 0 },
+    danger: { value: 0 },
     resolution: { value: new THREE.Vector2(1, 1) },
   },
   vertexShader: /* glsl */ `
@@ -24,7 +27,7 @@ const FilmShader = {
     }`,
   fragmentShader: /* glsl */ `
     uniform sampler2D tDiffuse;
-    uniform float time, glitch, grain, vignette;
+    uniform float time, glitch, grain, vignette, fade, desat, danger;
     uniform vec2 resolution;
     varying vec2 vUv;
 
@@ -54,8 +57,24 @@ const FilmShader = {
       float d = length(vUv - 0.5);
       col *= mix(1.0 - vignette, 1.0, smoothstep(0.82, 0.28, d));
 
+      // Farbkorrektur: etwas mehr Kontrast, Schatten leicht angehoben und warm
+      col = (col - 0.5) * 1.05 + 0.5;
+      col += vec3(0.010, 0.009, 0.004);
+
+      // Gefahr: roter, pulsierender Rand bei niedrigen HP
+      float pulse = 0.6 + 0.4 * sin(time * 6.0);
+      col = mix(col, col * vec3(1.0, 0.5, 0.45), danger * smoothstep(0.2, 0.75, d) * pulse);
+      col *= 1.0 - danger * 0.12;
+
+      // Tod: entsättigen und abdunkeln
+      float l2 = dot(col, vec3(0.299, 0.587, 0.114));
+      col = mix(col, vec3(l2) * 0.75, desat);
+
       // Film-Grain
       col += (hash(vUv * resolution + fract(time) * 100.0) - 0.5) * grain;
+
+      // Schwarzblende
+      col *= 1.0 - fade;
 
       gl_FragColor = vec4(col, 1.0);
     }`,
@@ -89,6 +108,9 @@ export class PostFX {
   render(t: number, dt: number) {
     this.film.uniforms.time.value = t;
     this.film.uniforms.glitch.value = fx.glitch;
+    this.film.uniforms.fade.value = fx.fade;
+    this.film.uniforms.desat.value = fx.desat;
+    this.film.uniforms.danger.value = fx.danger;
     fx.glitch = fx.glitch > 0.01 ? fx.glitch * Math.exp(-6 * dt) : 0;
     this.composer.render();
   }

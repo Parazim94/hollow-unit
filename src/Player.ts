@@ -65,6 +65,7 @@ export class Player {
     this.android = new Android();
     this.mesh.add(this.android.root);
     scene.add(this.mesh);
+    this.android.onStep = () => fx.sound('step');
     this.combat = new Combat(this.android.swordPivot, this, input, targets);
   }
 
@@ -99,6 +100,7 @@ export class Player {
     this.hurtTimer = 0;
     this.dodgeTimer = 0;
     this.jumpsLeft = MAX_JUMPS;
+    fx.fade = 1;
     this.onRespawn?.();
   }
 
@@ -128,6 +130,7 @@ export class Player {
     if (!this.dead && this.input.dodgePressed() && this.dodgeCooldown === 0 && this.dodgeTimer === 0) {
       this.combat.cancel();
       this.dodgeTimer = DODGE_TIME;
+      fx.kick = 1;
       fx.sound('dodge');
       this.dodgeCooldown = DODGE_COOLDOWN;
       if (hasInput) this.dodgeDir.set(wishX, 0, wishZ).normalize();
@@ -167,6 +170,11 @@ export class Player {
     const floor = this.colliders.floorAt(this.position.x, this.position.z, this.position.y);
     if (this.position.y <= floor && this.velocity.y <= 0) {
       this.position.y = floor;
+      // Harte Landung: Staub und Aufprall
+      if (!this.onGround && this.velocity.y < -9) {
+        fx.sound('land');
+        fx.burst(this.position.x, floor + 0.1, this.position.z, 10, 0xb8b09a, 3.5);
+      }
       this.velocity.y = 0;
       this.onGround = true;
       this.jumpsLeft = MAX_JUMPS;

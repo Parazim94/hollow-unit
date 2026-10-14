@@ -69,6 +69,9 @@ export class Game {
     this.renderer = new THREE.WebGLRenderer({ antialias: true });
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
     this.renderer.setSize(window.innerWidth, window.innerHeight);
+    // Neutrales Tonemapping: komprimiert helle Stellen (Himmel, Augen), ohne Farben zu verfälschen
+    this.renderer.toneMapping = THREE.NeutralToneMapping;
+    this.renderer.toneMappingExposure = 1.0;
     this.renderer.shadowMap.enabled = true;
     this.renderer.shadowMap.type = THREE.PCFShadowMap;
     document.body.appendChild(this.renderer.domElement);
@@ -110,6 +113,9 @@ export class Game {
       if (!locked && this.state === 'playing' && !this.player.dead) this.pause();
     });
     window.addEventListener('resize', this.onResize);
+
+    // Nur im Dev-Modus: Zugriff für Tests in der Browser-Konsole (fehlt im Produktions-Build)
+    if (import.meta.env.DEV) (window as unknown as { __game: Game }).__game = this;
   }
 
   /** Shader vorab kompilieren und ein paar Frames rendern, damit es beim Start nicht ruckelt. */
@@ -132,6 +138,7 @@ export class Game {
   private startGame() {
     if (this.state !== 'menu') return;
     this.lock();
+    fx.fade = 0.8;
     this.screens.show(null);
     this.hud.setVisible(true);
     this.state = 'playing';
@@ -187,6 +194,7 @@ export class Game {
     // Delta-Time begrenzen, damit Tab-Wechsel keine riesigen Sprünge erzeugen
     this.timer.update();
     let dt = Math.min(this.timer.getDelta(), 0.05);
+    const realDt = dt;
     // Hitstop: Spiel kurz fast einfrieren, das betont Treffer
     if (fx.hitstop > 0) {
       fx.hitstop -= dt;
@@ -216,6 +224,12 @@ export class Game {
         break;
     }
 
+    // Blenden und Warnanzeige laufen in Echtzeit, unabhängig vom Hitstop
+    fx.fade = Math.max(0, fx.fade - realDt * 0.9);
+    const dead = this.state === 'playing' && this.player.dead;
+    fx.desat += ((dead ? 1 : 0) - fx.desat) * Math.min(1, realDt * 3);
+    const hpRatio = this.player.hp / this.player.maxHp;
+    fx.danger = this.state === 'playing' && !this.player.dead && hpRatio < 0.3 ? (0.3 - hpRatio) / 0.3 : 0;
     this.world.update(dt, t, this.player.position);
     this.hud.update();
     this.particles.update(dt);

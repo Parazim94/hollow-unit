@@ -46,7 +46,11 @@ export class Android {
   private armL = new THREE.Group();
   private elbowL = new THREE.Group();
 
+  /** Wird bei jedem Fußaufsatz während des Laufens aufgerufen. */
+  onStep?: () => void;
+
   private phase = 0;
+  private lastSin = 0;
   private time = 0;
   private run = 0;
   private air = 0;
@@ -222,6 +226,8 @@ export class Android {
 
     const run = this.run;
     const sp = Math.sin(this.phase);
+    if (s.grounded && run > 0.5 && sp * this.lastSin < 0) this.onStep?.();
+    this.lastSin = sp;
     const sq = Math.sin(this.phase + Math.PI);
 
     // Laufen

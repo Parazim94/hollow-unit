@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import type { Input } from './Input';
 import { fx } from './Fx';
 
+const BASE_FOV = 60;
 const DISTANCE = 7;
 const HEIGHT_OFFSET = 1.6;
 const MIN_PITCH = 0.05;
@@ -51,5 +52,14 @@ export class CameraRig {
       fx.shake = 0;
     }
     this.camera.lookAt(this.focus);
+
+    // FOV-Stoß beim Ausweichen
+    const fov = BASE_FOV + 7 * fx.kick;
+    if (Math.abs(this.camera.fov - fov) > 0.01) {
+      this.camera.fov = fov;
+      this.camera.updateProjectionMatrix();
+    }
+    fx.kick *= Math.exp(-4 * dt);
+    if (fx.kick < 0.001) fx.kick = 0;
   }
 }
