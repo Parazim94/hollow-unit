@@ -5,7 +5,6 @@ import { groundTexture, roadTexture } from './Textures';
 import { createSky, FOG_COLOR, SUN_DIR } from './Sky';
 import { createBuildings, createCars, createDebris, createFerrisWheel, createLamps, createSkyline } from './Props';
 import { createGrass, createTrees } from './Foliage';
-import { createMist } from './Mist';
 
 /** Orte, die frei bleiben sollen (Gegner-Spawns, Terminal, Start). */
 const AVOID: Array<[number, number]> = [
@@ -68,7 +67,6 @@ export function createWorld(scene: THREE.Scene) {
   createSkyline(scene, rand);
   const grass = createGrass(scene, rand, footprints);
   const wheel = createFerrisWheel(scene);
-  const mist = createMist(scene);
 
   return {
     colliders,
@@ -76,7 +74,6 @@ export function createWorld(scene: THREE.Scene) {
     update(dt: number, t: number, focus: THREE.Vector3) {
       sky.update(t, focus);
       grass.update(t);
-      mist.update(t, focus);
       wheel.update(dt);
       sun.target.position.set(focus.x, 0, focus.z);
       sun.position.copy(sun.target.position).add(sunOffset);

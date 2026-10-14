@@ -206,26 +206,3 @@ export function softGradientTexture() {
   t.colorSpace = THREE.SRGBColorSpace;
   return t;
 }
-
-/** Weiche, kachelbare Nebelschwaden (Alpha-Textur). */
-export function mistTexture() {
-  const rand = rng(31);
-  const [c, g] = makeCanvas(256, 256);
-  for (let i = 0; i < 70; i++) {
-    const x = rand() * 256;
-    const y = rand() * 256;
-    const r = 25 + rand() * 60;
-    const a = 0.1 + rand() * 0.22;
-    // Umbrechen, damit die Kachel nahtlos ist; Farbe bleibt Weiß, nur Alpha läuft aus
-    for (const dx of [-256, 0, 256]) {
-      for (const dy of [-256, 0, 256]) {
-        const grad = g.createRadialGradient(x + dx, y + dy, 0, x + dx, y + dy, r);
-        grad.addColorStop(0, `rgba(255,252,240,${a})`);
-        grad.addColorStop(1, 'rgba(255,252,240,0)');
-        g.fillStyle = grad;
-        g.fillRect(x + dx - r, y + dy - r, r * 2, r * 2);
-      }
-    }
-  }
-  return toTexture(c);
-}
