@@ -4,10 +4,10 @@ import type { Colliders } from './Colliders';
 import type { CameraRig } from './CameraRig';
 import type { Enemies } from './Enemies';
 import { Combat } from './Combat';
+import { Android } from './Android';
 import { fx } from './Fx';
 
 const RADIUS = 0.4;
-const HEIGHT = 1.8;
 const RUN_SPEED = 7;
 const ACCEL = 40;
 const AIR_ACCEL = 18;
@@ -36,6 +36,7 @@ export class Player {
   onRespawn?: () => void;
 
   private combat: Combat;
+  private android: Android;
   private onGround = true;
   private jumpsLeft = MAX_JUMPS;
 
@@ -61,23 +62,10 @@ export class Player {
     targets: Enemies,
   ) {
     this.mesh = new THREE.Group();
-    const body = new THREE.Mesh(
-      new THREE.CapsuleGeometry(RADIUS, HEIGHT - RADIUS * 2, 6, 12),
-      new THREE.MeshStandardMaterial({ color: 0x2b2923, roughness: 0.6 }),
-    );
-    body.position.y = HEIGHT / 2;
-    body.castShadow = true;
-
-    // Heller "Visor"-Streifen, damit man die Blickrichtung (+Z lokal) sieht
-    const visor = new THREE.Mesh(
-      new THREE.BoxGeometry(0.5, 0.1, 0.2),
-      new THREE.MeshBasicMaterial({ color: 0xf2ecd8 }),
-    );
-    visor.position.set(0, HEIGHT - 0.35, RADIUS - 0.05);
-
-    this.mesh.add(body, visor);
+    this.android = new Android();
+    this.mesh.add(this.android.root);
     scene.add(this.mesh);
-    this.combat = new Combat(this.mesh, this, input, targets);
+    this.combat = new Combat(this.android.swordPivot, this, input, targets);
   }
 
   /** @returns true, wenn der Schaden angenommen wurde */
@@ -194,6 +182,14 @@ export class Player {
       this.facing = lerpAngle(this.facing, target, 1 - Math.exp(-18 * dt));
     }
 
+    this.android.update(dt, {
+      speed,
+      grounded: this.onGround,
+      vy: this.velocity.y,
+      dodging: this.dodgeTimer > 0,
+      attacking: this.combat.attacking,
+      dead: this.dead,
+    });
     this.mesh.position.copy(this.position);
     this.mesh.rotation.y = this.facing;
     // Beim Ausweichen nach vorn kippen, bei Niederlage hinfallen

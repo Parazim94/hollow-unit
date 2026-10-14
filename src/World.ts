@@ -1,61 +1,75 @@
 import * as THREE from 'three';
 import { Colliders } from './Colliders';
+import { rng } from './rng';
+import { groundTexture, roadTexture } from './Textures';
+import { createSky, FOG_COLOR, SUN_DIR } from './Sky';
+import { createBuildings, createCars, createDebris, createFerrisWheel, createLamps, createSkyline } from './Props';
+import { createGrass, createTrees } from './Foliage';
 
-// Entsättigte NieR-Palette
-const PALETTE = {
-  sky: 0xd4cdb6,
-  ground: 0xb8b09a,
-  ruin: 0x8c8571,
-  dark: 0x4a463c,
-};
+/** Orte, die frei bleiben sollen (Gegner-Spawns, Terminal, Start). */
+const AVOID: Array<[number, number]> = [
+  [0, -9], [-6, -7], [6, -7], [-11, -14], [11, -14], [0, -28], [-3, 5], [0, 4],
+];
 
+/** Verfallene, überwucherte Stadt: Straße, Hochhaus-Ruinen, Autos, Gras, Bäume, Himmel. */
 export function createWorld(scene: THREE.Scene) {
   const colliders = new Colliders();
-  scene.background = new THREE.Color(PALETTE.sky);
-  scene.fog = new THREE.Fog(PALETTE.sky, 20, 70);
+  const rand = rng(7);
 
-  // Licht
-  scene.add(new THREE.HemisphereLight(0xf2ecd8, 0x6b6552, 1.1));
-  const sun = new THREE.DirectionalLight(0xfff4dc, 2.2);
-  sun.position.set(12, 20, 8);
+  scene.fog = new THREE.Fog(FOG_COLOR, 28, 135);
+  const sky = createSky(scene);
+
+  // Licht: tiefe, warme Sonne und kühles Himmelslicht
+  scene.add(new THREE.HemisphereLight(0xf2ecd8, 0x6b6552, 1.0));
+  const sun = new THREE.DirectionalLight(0xfff0d0, 2.4);
   sun.castShadow = true;
   sun.shadow.mapSize.set(2048, 2048);
-  Object.assign(sun.shadow.camera, { left: -30, right: 30, top: 30, bottom: -30, near: 1, far: 60 });
-  scene.add(sun);
+  Object.assign(sun.shadow.camera, { left: -35, right: 35, top: 35, bottom: -35, near: 1, far: 120 });
+  sun.shadow.bias = -0.0004;
+  scene.add(sun, sun.target);
+  const sunOffset = SUN_DIR.clone().multiplyScalar(60);
 
-  // Boden
+  // Boden: Beton mit Moos und Rissen
+  const gTex = groundTexture();
+  gTex.repeat.set(80, 80);
   const ground = new THREE.Mesh(
-    new THREE.PlaneGeometry(200, 200),
-    new THREE.MeshStandardMaterial({ color: PALETTE.ground, roughness: 1 }),
+    new THREE.PlaneGeometry(400, 400),
+    new THREE.MeshStandardMaterial({ map: gTex, roughness: 1 }),
   );
   ground.rotation.x = -Math.PI / 2;
   ground.receiveShadow = true;
   scene.add(ground);
 
-  // Raster als Orientierungshilfe
-  const grid = new THREE.GridHelper(200, 100, PALETTE.dark, PALETTE.ruin);
-  (grid.material as THREE.Material).transparent = true;
-  (grid.material as THREE.Material).opacity = 0.25;
-  grid.position.y = 0.01;
-  scene.add(grid);
+  // Straße, die zum Boss führt
+  const rTex = roadTexture();
+  rTex.repeat.set(1, 19);
+  const road = new THREE.Mesh(
+    new THREE.PlaneGeometry(10, 190),
+    new THREE.MeshStandardMaterial({ map: rTex, roughness: 0.95 }),
+  );
+  road.rotation.x = -Math.PI / 2;
+  road.position.set(0, 0.02, -25);
+  road.receiveShadow = true;
+  scene.add(road);
 
-  // Ruinen aus Primitiven (deterministisch, damit die Szene immer gleich aussieht)
-  const ruinMat = new THREE.MeshStandardMaterial({ color: PALETTE.ruin, roughness: 0.95 });
-  let seed = 7;
-  const rand = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
-  for (let i = 0; i < 30; i++) {
-    const w = 1 + rand() * 3;
-    const h = 1 + rand() * 7;
-    const d = 1 + rand() * 3;
-    const box = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), ruinMat);
-    const angle = rand() * Math.PI * 2;
-    const radius = 8 + rand() * 30;
-    box.position.set(Math.cos(angle) * radius, h / 2, Math.sin(angle) * radius);
-    box.rotation.y = rand() * Math.PI;
-    box.castShadow = box.receiveShadow = true;
-    scene.add(box);
-    colliders.add({ x: box.position.x, z: box.position.z, halfW: w / 2, halfD: d / 2, rot: box.rotation.y, height: h });
-  }
+  const footprints = createBuildings(scene, colliders, rand);
+  createCars(scene, colliders);
+  createLamps(scene, rand);
+  createDebris(scene, colliders, rand, footprints, AVOID);
+  createTrees(scene, colliders, rand, footprints, AVOID);
+  createSkyline(scene, rand);
+  const grass = createGrass(scene, rand, footprints);
+  const wheel = createFerrisWheel(scene);
 
-  return { colliders };
+  return {
+    colliders,
+    /** Pro Frame: Himmel, Gras und Riesenrad animieren, Sonne und Schatten dem Spieler folgen lassen. */
+    update(dt: number, t: number, focus: THREE.Vector3) {
+      sky.update(t, focus);
+      grass.update(t);
+      wheel.update(dt);
+      sun.target.position.set(focus.x, 0, focus.z);
+      sun.position.copy(sun.target.position).add(sunOffset);
+    },
+  };
 }

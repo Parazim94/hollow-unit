@@ -58,6 +58,7 @@ export class Game {
   private dialogue = new Dialogue();
   private terminal: Terminal;
   private hacking: Hacking;
+  private world: ReturnType<typeof createWorld>;
 
   private state: State = 'menu';
   private introShown = false;
@@ -79,7 +80,7 @@ export class Game {
       200,
     );
 
-    const world = createWorld(this.scene);
+    const world = (this.world = createWorld(this.scene));
     this.input = new Input(this.renderer.domElement);
     this.cameraRig = new CameraRig(this.camera, this.input);
     this.enemies = new Enemies(this.scene, world.colliders);
@@ -215,6 +216,7 @@ export class Game {
         break;
     }
 
+    this.world.update(dt, t, this.player.position);
     this.hud.update();
     this.particles.update(dt);
     this.dust.update(t, this.player.position);

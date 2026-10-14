@@ -35,12 +35,11 @@ const COMBO_WINDOW = 0.4;
 /** Ab diesem Anteil der Angriffsdauer wird der nächste Input vorgemerkt. */
 const BUFFER_FROM = 0.4;
 const REST_YAW = 0;
-const REST_PITCH = 1.3;
+const REST_PITCH = 0.9;
 
 const smooth = (s: number) => s * s * (3 - 2 * s);
 
 export class Combat {
-  private pivot = new THREE.Group();
   private current: AttackDef | null = null;
   private heavy = false;
   private t = 0;
@@ -49,28 +48,15 @@ export class Combat {
   private queued: 'light' | 'heavy' | null = null;
   private hitSet = new Set<object>();
 
+  /** @param pivot Schulter-Gelenk des Schwertarms (kommt vom Android-Modell) */
   constructor(
-    owner: THREE.Object3D,
+    private pivot: THREE.Group,
     private player: Player,
     private input: Input,
     private targets: Enemies,
   ) {
-    const blade = new THREE.Mesh(
-      new THREE.BoxGeometry(0.08, 0.05, 1.4),
-      new THREE.MeshStandardMaterial({ color: 0xf2ecd8, emissive: 0x8a8470, roughness: 0.3, metalness: 0.6 }),
-    );
-    blade.position.z = 0.95;
-    const grip = new THREE.Mesh(
-      new THREE.BoxGeometry(0.06, 0.06, 0.28),
-      new THREE.MeshStandardMaterial({ color: 0x2b2923 }),
-    );
-    grip.position.z = 0.1;
-    blade.castShadow = true;
-    this.pivot.add(blade, grip);
     this.pivot.rotation.order = 'YXZ';
-    this.pivot.position.set(-0.45, 1.15, 0.1);
     this.pivot.rotation.set(REST_PITCH, REST_YAW, 0);
-    owner.add(this.pivot);
   }
 
   get attacking() {
