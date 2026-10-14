@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import type { Input } from './Input';
 import type { Player } from './Player';
 import type { CameraRig } from './CameraRig';
-import type { Targets } from './Targets';
+import type { Enemies } from './Enemies';
 import { fx } from './Fx';
 
 const FIRE_INTERVAL = 0.14;
@@ -33,7 +33,7 @@ export class Pod {
     private player: Player,
     private cam: CameraRig,
     private input: Input,
-    private targets: Targets,
+    private targets: Enemies,
   ) {
     const shell = new THREE.Mesh(
       new THREE.BoxGeometry(0.34, 0.3, 0.5),

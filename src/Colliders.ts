@@ -70,6 +70,12 @@ export class Colliders {
     }
   }
 
+  /** Liegt der Punkt in einer Box? (für Projektile) */
+  blocks(x: number, y: number, z: number): boolean {
+    for (const b of this.boxes) if (y < b.height && this.contains(b, x, z)) return true;
+    return false;
+  }
+
   private contains(b: BoxCollider, x: number, z: number) {
     const c = Math.cos(b.rot);
     const s = Math.sin(b.rot);

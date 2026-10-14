@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import type { Input } from './Input';
 import type { Colliders } from './Colliders';
 import type { CameraRig } from './CameraRig';
-import type { Targets } from './Targets';
+import type { Enemies } from './Enemies';
 import { Combat } from './Combat';
 import { fx } from './Fx';
 
@@ -32,6 +32,9 @@ export class Player {
   /** Blickwinkel um Y (0 = +Z) */
   facing = 0;
 
+  /** Wird nach dem Neustart aufgerufen (z. B. um Gegner zurückzusetzen). */
+  onRespawn?: () => void;
+
   private combat: Combat;
   private onGround = true;
   private jumpsLeft = MAX_JUMPS;
@@ -55,7 +58,7 @@ export class Player {
     private input: Input,
     private colliders: Colliders,
     private cam: CameraRig,
-    targets: Targets,
+    targets: Enemies,
   ) {
     this.mesh = new THREE.Group();
     const body = new THREE.Mesh(
@@ -82,9 +85,16 @@ export class Player {
     if (this.dead || this.invulnerable) return false;
     this.hp = Math.max(0, this.hp - amount);
     this.hurtTimer = HURT_INVULN;
+    this.combat.cancel();
     fx.shake += 0.25;
     fx.hitstop = Math.max(fx.hitstop, 0.06);
     return true;
+  }
+
+  /** Rückstoß in Richtung (dx, dz) (normalisiert). */
+  knock(dx: number, dz: number, force: number) {
+    this.velocity.x = dx * force;
+    this.velocity.z = dz * force;
   }
 
   private respawn() {
@@ -94,6 +104,7 @@ export class Player {
     this.hurtTimer = 0;
     this.dodgeTimer = 0;
     this.jumpsLeft = MAX_JUMPS;
+    this.onRespawn?.();
   }
 
   update(dt: number) {

@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import type { Input } from './Input';
 import type { Player } from './Player';
-import type { Targets } from './Targets';
+import type { Enemies } from './Enemies';
 import { fx } from './Fx';
 
 interface AttackDef {
@@ -53,7 +53,7 @@ export class Combat {
     owner: THREE.Object3D,
     private player: Player,
     private input: Input,
-    private targets: Targets,
+    private targets: Enemies,
   ) {
     const blade = new THREE.Mesh(
       new THREE.BoxGeometry(0.08, 0.05, 1.4),

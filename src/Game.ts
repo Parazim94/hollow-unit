@@ -3,7 +3,7 @@ import { createWorld } from './World';
 import { Input } from './Input';
 import { CameraRig } from './CameraRig';
 import { Player } from './Player';
-import { Targets } from './Targets';
+import { Enemies } from './Enemies';
 import { Pod } from './Pod';
 import { HUD } from './HUD';
 import { fx } from './Fx';
@@ -17,7 +17,7 @@ export class Game {
   private cameraRig: CameraRig;
   private player: Player;
   private pod: Pod;
-  private targets: Targets;
+  private enemies: Enemies;
   private hud: HUD;
 
   constructor() {
@@ -38,16 +38,11 @@ export class Game {
     const world = createWorld(this.scene);
     this.input = new Input(this.renderer.domElement);
     this.cameraRig = new CameraRig(this.camera, this.input);
-    this.targets = new Targets(this.scene, [
-      [0, -4],
-      [-4, -2],
-      [4, -2],
-      [-3, -4],
-      [3, -4.5],
-    ]);
-    this.player = new Player(this.scene, this.input, world.colliders, this.cameraRig, this.targets);
-    this.pod = new Pod(this.scene, this.player, this.cameraRig, this.input, this.targets);
-    this.hud = new HUD(this.player);
+    this.enemies = new Enemies(this.scene, world.colliders);
+    this.player = new Player(this.scene, this.input, world.colliders, this.cameraRig, this.enemies);
+    this.player.onRespawn = () => this.enemies.reset();
+    this.pod = new Pod(this.scene, this.player, this.cameraRig, this.input, this.enemies);
+    this.hud = new HUD(this.player, this.enemies.boss);
 
     window.addEventListener('resize', this.onResize);
   }
@@ -68,7 +63,7 @@ export class Game {
     this.input.poll();
     this.player.update(dt);
     this.pod.update(dt, t);
-    this.targets.update(dt);
+    this.enemies.update(dt, this.player);
     this.hud.update();
     this.cameraRig.update(dt, this.player.position);
     this.input.endFrame();
