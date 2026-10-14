@@ -85,6 +85,7 @@ export class Pod {
     const mesh = new THREE.Mesh(this.bulletGeo, this.bulletMat);
     mesh.position.copy(this.mesh.position).addScaledVector(dir, 0.4);
     this.scene.add(mesh);
+    fx.sound('shoot');
     this.bullets.push({ mesh, vel: dir.clone().multiplyScalar(BULLET_SPEED), life: BULLET_LIFE });
   }
 
@@ -105,6 +106,7 @@ export class Pod {
             const dir = b.vel.clone().setY(0).normalize();
             target.takeHit(DAMAGE, dir, 1.5);
             fx.shake += 0.02;
+            fx.burst(bp.x, bp.y, bp.z, 4, 0xfff4dc, 3);
             remove = true;
             break;
           }

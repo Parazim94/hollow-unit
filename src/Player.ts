@@ -87,6 +87,9 @@ export class Player {
     this.hurtTimer = HURT_INVULN;
     this.combat.cancel();
     fx.shake += 0.25;
+    fx.glitch = 1;
+    fx.sound('hurt');
+    fx.burst(this.position.x, this.position.y + 1, this.position.z, 14, 0xc0392b, 5);
     fx.hitstop = Math.max(fx.hitstop, 0.06);
     return true;
   }
@@ -133,6 +136,7 @@ export class Player {
     if (!this.dead && this.input.dodgePressed() && this.dodgeCooldown === 0 && this.dodgeTimer === 0) {
       this.combat.cancel();
       this.dodgeTimer = DODGE_TIME;
+      fx.sound('dodge');
       this.dodgeCooldown = DODGE_COOLDOWN;
       if (hasInput) this.dodgeDir.set(wishX, 0, wishZ).normalize();
       else this.dodgeDir.set(Math.sin(this.facing), 0, Math.cos(this.facing)); // nach vorne
@@ -155,6 +159,7 @@ export class Player {
       if (!this.dead && this.input.jumpPressed() && this.jumpsLeft > 0) {
         this.velocity.y = JUMP_SPEED;
         this.jumpsLeft--;
+        fx.sound('jump');
         this.onGround = false;
       }
       this.velocity.y -= GRAVITY * dt;

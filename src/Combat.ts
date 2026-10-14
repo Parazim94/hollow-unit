@@ -125,6 +125,7 @@ export class Combat {
     this.t = 0;
     this.queued = null;
     this.hitSet.clear();
+    fx.sound('swing');
     if (aimAngle !== null) this.player.facing = aimAngle;
     this.player.velocity.x = Math.sin(this.player.facing) * def.lunge;
     this.player.velocity.z = Math.cos(this.player.facing) * def.lunge;
@@ -177,6 +178,8 @@ export class Combat {
       target.takeHit(def.damage, dir, def.knock);
       fx.hitstop = Math.max(fx.hitstop, def.hitstop);
       fx.shake += def.shake;
+      fx.sound('hit');
+      fx.burst(target.position.x, target.position.y + 1.2, target.position.z, 10, 0xfff4dc, 6);
     }
   }
 }

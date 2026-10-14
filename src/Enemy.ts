@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import type { Player } from './Player';
 import type { Colliders } from './Colliders';
+import { fx } from './Fx';
 
 export interface EnemyContext {
   scene: THREE.Scene;
@@ -129,6 +130,8 @@ export abstract class Enemy {
       this.alive = false;
       this.deathT = DEATH_TIME;
       this.respawnT = this.cfg.respawn;
+      fx.sound('kill');
+      fx.burst(this.position.x, this.position.y + this.height / 2, this.position.z, 30, 0xc0392b, 7);
       this.onDeath();
     } else if (damage >= this.cfg.staggerAt) {
       this.state = 'stagger';
@@ -149,6 +152,7 @@ export abstract class Enemy {
 
   update(dt: number, ctx: EnemyContext) {
     this.clock += dt;
+    const prevState = this.state;
     this.flash = Math.max(0, this.flash - dt);
 
     if (!this.alive) {
@@ -168,6 +172,8 @@ export abstract class Enemy {
     } else {
       this.think(dt, ctx);
     }
+
+    if (this.state === 'windup' && prevState !== 'windup') fx.sound('warn');
 
     // Rückstoß und Sprünge nach vorn
     this.position.addScaledVector(this.push, dt);

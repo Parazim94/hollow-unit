@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { Enemy, type EnemyContext } from './Enemy';
+import { fx } from './Fx';
 
 const eyeMat = () => new THREE.MeshBasicMaterial({ color: 0xc0392b });
 
@@ -285,6 +286,9 @@ export class Boss extends Enemy {
       this.ring.position.set(this.position.x, 0.05, this.position.z);
       this.ring.visible = true;
       this.ringT = RING_TIME;
+      fx.sound('slam');
+      fx.shake += 0.35;
+      fx.burst(this.position.x, 0.2, this.position.z, 28, 0xb8b09a, 9);
       if (p.dist < SLAM_RADIUS && ctx.player.position.y < 1.0) {
         if (ctx.player.takeDamage(25)) ctx.player.knock(p.dx / (p.dist || 1), p.dz / (p.dist || 1), 10);
       }

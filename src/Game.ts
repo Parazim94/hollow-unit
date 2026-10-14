@@ -7,6 +7,9 @@ import { Enemies } from './Enemies';
 import { Pod } from './Pod';
 import { HUD } from './HUD';
 import { fx } from './Fx';
+import { PostFX } from './PostFX';
+import { Particles, Dust } from './Particles';
+import { AudioEngine } from './Audio';
 
 export class Game {
   private renderer: THREE.WebGLRenderer;
@@ -19,6 +22,10 @@ export class Game {
   private pod: Pod;
   private enemies: Enemies;
   private hud: HUD;
+  private post: PostFX;
+  private particles: Particles;
+  private dust: Dust;
+  private audio = new AudioEngine();
 
   constructor() {
     this.renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -44,6 +51,12 @@ export class Game {
     this.pod = new Pod(this.scene, this.player, this.cameraRig, this.input, this.enemies);
     this.hud = new HUD(this.player, this.enemies.boss);
 
+    this.particles = new Particles(this.scene);
+    this.dust = new Dust(this.scene);
+    this.post = new PostFX(this.renderer, this.scene, this.camera);
+    fx.burst = (x, y, z, n, c, s) => this.particles.burst(x, y, z, n, c, s);
+    fx.sound = (name) => this.audio.play(name);
+
     window.addEventListener('resize', this.onResize);
   }
 
@@ -66,13 +79,18 @@ export class Game {
     this.enemies.update(dt, this.player);
     this.hud.update();
     this.cameraRig.update(dt, this.player.position);
+    this.particles.update(dt);
+    this.dust.update(t, this.player.position);
+    this.audio.setIntensity(this.enemies.list.some((e) => e.alive && e.aggro) ? 1 : 0);
+    this.audio.update(dt);
     this.input.endFrame();
-    this.renderer.render(this.scene, this.camera);
+    this.post.render(t, dt);
   };
 
   private onResize = () => {
     this.camera.aspect = window.innerWidth / window.innerHeight;
     this.camera.updateProjectionMatrix();
     this.renderer.setSize(window.innerWidth, window.innerHeight);
+    this.post.resize(window.innerWidth, window.innerHeight, this.renderer.getPixelRatio());
   };
 }
