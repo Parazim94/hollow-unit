@@ -1,4 +1,5 @@
 import type { Player } from './Player';
+import { IS_TOUCH } from './Input';
 import type { Boss } from './EnemyTypes';
 
 const BANNER_MS = 6000;
@@ -23,7 +24,7 @@ export class HUD {
     const root = (this.root = document.createElement('div'));
     root.innerHTML = `
       <style>
-        #hud-hp { position: fixed; left: 24px; top: 20px; width: 240px; font: 12px monospace; color: #4a463c; letter-spacing: .15em; }
+        #hud-hp { position: fixed; left: calc(24px + env(safe-area-inset-left, 0px)); top: calc(20px + env(safe-area-inset-top, 0px)); width: 240px; font: 12px monospace; color: #4a463c; letter-spacing: .15em; }
         #hud-hp .track { margin-top: 4px; height: 6px; background: rgba(74,70,60,.25); }
         #hud-hp .fill { height: 100%; width: 100%; background: #4a463c; transition: width .15s; }
         #hud-dot { position: fixed; left: 50%; top: 50%; width: 4px; height: 4px; margin: -2px 0 0 -2px; background: #4a463c; opacity: .5; pointer-events: none; }
@@ -41,7 +42,7 @@ export class HUD {
       <div id="hud-boss">COLOSSUS<div class="track"><div class="fill"></div></div></div>
       <div id="hud-prompt"></div>
       <div id="hud-banner">TARGET ELIMINATED</div>
-      <div id="hud-over">SYSTEM FAILURE<small>R / START = NEUSTART</small></div>`;
+      <div id="hud-over">SYSTEM FAILURE<small>${IS_TOUCH ? 'TIPPEN = NEUSTART' : 'R / START = NEUSTART'}</small></div>`;
     document.body.appendChild(root);
     this.bar = root.querySelector('#hud-hp .fill') as HTMLDivElement;
     this.over = root.querySelector('#hud-over') as HTMLDivElement;

@@ -88,6 +88,21 @@ Bei niedrigen HP pulsiert ein roter Rand am Bildschirm. Fällt dein Kern aus, ve
 | Neustart (nach dem Tod) | `R` | `Start` |
 | Ton an/aus | `M` | – |
 
+### Auf dem Handy
+
+HOLLOW UNIT läuft auch im Mobilbrowser (Querformat). Beim Tippen auf „Start“ geht das Spiel, wo der Browser es erlaubt, in den Vollbildmodus.
+
+| Aktion | Touch |
+|---|---|
+| Laufen | Daumen links aufsetzen und ziehen (der Stick erscheint dort, wo du tippst) |
+| Kamera | rechts auf freier Fläche wischen |
+| Angriff / Schwer / Springen / Ausweichen / Pod | Tasten rechts unten |
+| Terminal hacken | Taste „HACKEN“ erscheint am Terminal |
+| Pause | Taste „II“ oben rechts, außerdem pausiert das Spiel beim App-Wechsel |
+| Dialog weiter / Neustart | irgendwo tippen |
+
+Im Hochformat erscheint der Hinweis „Bitte Gerät drehen“. Auf dem iPhone ist Vollbild im Browser nicht möglich, die Seite lässt sich aber zum Home-Bildschirm hinzufügen.
+
 Im Minispiel bewegst du dich mit `WASD` oder dem linken Stick, zielst mit der Maus oder dem rechten Stick und schießt mit Mausklick, `Leertaste` oder `A`/`RT`.
 
 ---

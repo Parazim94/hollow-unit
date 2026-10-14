@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { createWorld } from './World';
-import { Input } from './Input';
+import { Input, IS_TOUCH } from './Input';
+import { Touch } from './Touch';
 import { CameraRig } from './CameraRig';
 import { Player } from './Player';
 import { Enemies } from './Enemies';
@@ -59,6 +60,7 @@ export class Game {
   private terminal: Terminal;
   private hacking: Hacking;
   private world: ReturnType<typeof createWorld>;
+  private touch: Touch | null = null;
 
   private state: State = 'menu';
   private introShown = false;
@@ -86,6 +88,7 @@ export class Game {
     const world = (this.world = createWorld(this.scene));
     this.input = new Input(this.renderer.domElement);
     this.cameraRig = new CameraRig(this.camera, this.input);
+    if (IS_TOUCH) this.touch = new Touch(this.input);
     this.enemies = new Enemies(this.scene, world.colliders);
     this.player = new Player(this.scene, this.input, world.colliders, this.cameraRig, this.enemies);
     this.player.onRespawn = () => {
@@ -113,6 +116,10 @@ export class Game {
       if (!locked && this.state === 'playing' && !this.player.dead) this.pause();
     });
     window.addEventListener('resize', this.onResize);
+    // App-Wechsel oder gesperrter Bildschirm: automatisch pausieren
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden && this.state === 'playing' && !this.player.dead) this.pause();
+    });
 
     // Nur im Dev-Modus: Zugriff für Tests in der Browser-Konsole (fehlt im Produktions-Build)
     if (import.meta.env.DEV) (window as unknown as { __game: Game }).__game = this;
@@ -131,6 +138,7 @@ export class Game {
   // --- Zustandswechsel ---------------------------------------------------
 
   private lock() {
+    if (IS_TOUCH) return; // kein Pointer Lock auf Handys
     const r: unknown = this.renderer.domElement.requestPointerLock();
     if (r instanceof Promise) r.catch(() => {});
   }
@@ -138,6 +146,7 @@ export class Game {
   private startGame() {
     if (this.state !== 'menu') return;
     this.lock();
+    if (IS_TOUCH) this.enterFullscreen();
     fx.fade = 0.8;
     this.screens.show(null);
     this.hud.setVisible(true);
@@ -145,6 +154,19 @@ export class Game {
     if (!this.introShown) {
       this.introShown = true;
       this.say(TEXT.intro, 'playing');
+    }
+  }
+
+  /** Vollbild und Querformat, soweit der Browser es erlaubt (iPhones lassen es nicht zu). */
+  private enterFullscreen() {
+    try {
+      const el = document.documentElement;
+      const req = el.requestFullscreen?.({ navigationUI: 'hide' });
+      void req
+        ?.then(() => (screen.orientation as unknown as { lock?: (o: string) => Promise<void> }).lock?.('landscape'))
+        .catch(() => {});
+    } catch {
+      /* Vollbild ist optional */
     }
   }
 
@@ -230,6 +252,13 @@ export class Game {
     fx.desat += ((dead ? 1 : 0) - fx.desat) * Math.min(1, realDt * 3);
     const hpRatio = this.player.hp / this.player.maxHp;
     fx.danger = this.state === 'playing' && !this.player.dead && hpRatio < 0.3 ? (0.3 - hpRatio) / 0.3 : 0;
+    this.touch?.setMode(
+      this.state === 'playing'
+        ? this.player.dead ? 'dead' : 'play'
+        : this.state === 'dialogue' ? 'dialogue'
+        : this.state === 'hacking' ? 'hack'
+        : 'off',
+    );
     this.world.update(dt, t, this.player.position);
     this.hud.update();
     this.particles.update(dt);
@@ -255,7 +284,8 @@ export class Game {
 
     // Terminal
     const canHack = !this.player.dead && this.terminal.near(this.player.position);
-    this.hud.setPrompt(canHack ? '[F] HACKEN' : null);
+    this.hud.setPrompt(canHack && !IS_TOUCH ? '[F] HACKEN' : null);
+    this.touch?.setInteract(canHack);
     if (canHack && this.input.interactPressed()) {
       this.startHack();
       return;

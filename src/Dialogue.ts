@@ -32,6 +32,7 @@ export class Dialogue {
         #dlg .text { font-size: 16px; line-height: 1.6; min-height: 3.2em; }
         #dlg .hint { position: absolute; right: 16px; bottom: 6px; font-size: 12px; animation: dlgblink 1s infinite; }
         @keyframes dlgblink { 50% { opacity: 0; } }
+        @media (max-height: 500px) { #dlg { bottom: 4vh; padding: 10px 16px 14px; } #dlg .text { font-size: 13px; min-height: 2.6em; } #dlg .name { margin-bottom: 4px; } }
       </style>
       <div id="dlg"><div class="name"></div><div class="text"></div><div class="hint">▼</div></div>`;
     document.body.appendChild(root);

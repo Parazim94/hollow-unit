@@ -1,3 +1,6 @@
+/** Handy oder Tablet: der primäre Zeiger ist ein Finger. Hybrid-Laptops mit Maus zählen nicht. */
+export const IS_TOUCH = typeof window !== 'undefined' && window.matchMedia('(pointer: coarse)').matches;
+
 const DEADZONE = 0.15;
 
 function dz(v: number) {
@@ -11,6 +14,7 @@ export class Input {
   private lookX = 0;
   private lookY = 0;
   private padPrev: boolean[] = [];
+  private touchMove = { x: 0, y: 0 };
 
   /** Pro Frame gesetzt aus dem Gamepad. */
   private padJump = false;
@@ -31,9 +35,12 @@ export class Input {
     window.addEventListener('keyup', (e) => this.keys.delete(e.code));
     window.addEventListener('blur', () => this.keys.clear());
 
-    canvas.addEventListener('click', () => {
-      if (document.pointerLockElement !== canvas) canvas.requestPointerLock();
-    });
+    // Auf Touch-Geräten gibt es keinen Pointer Lock, dort steuert Touch.ts die Kamera
+    if (!IS_TOUCH) {
+      canvas.addEventListener('click', () => {
+        if (document.pointerLockElement !== canvas) canvas.requestPointerLock();
+      });
+    }
     canvas.addEventListener('contextmenu', (e) => e.preventDefault());
     canvas.addEventListener('mousedown', (e) => {
       // Der erste Klick fängt nur die Maus, er löst keinen Angriff aus
@@ -44,6 +51,29 @@ export class Input {
       this.lookX += e.movementX;
       this.lookY += e.movementY;
     });
+  }
+
+  // --- Touch (wird von Touch.ts befüllt) ---
+
+  /** x = rechts, y = vorwärts, jeweils -1..1 */
+  setTouchMove(x: number, y: number) {
+    this.touchMove.x = x;
+    this.touchMove.y = y;
+  }
+
+  addLook(dx: number, dy: number) {
+    this.lookX += dx;
+    this.lookY += dy;
+  }
+
+  /** Simuliert einen Tastendruck (Bildschirmtasten). */
+  pressVirtual(code: string) {
+    if (!this.keys.has(code)) this.justPressed.add(code);
+    this.keys.add(code);
+  }
+
+  releaseVirtual(code: string) {
+    this.keys.delete(code);
   }
 
   private get pad(): Gamepad | null {
@@ -88,6 +118,9 @@ export class Input {
     if (this.keys.has('KeyA') || this.keys.has('ArrowLeft')) x -= 1;
     if (this.keys.has('KeyW') || this.keys.has('ArrowUp')) y += 1;
     if (this.keys.has('KeyS') || this.keys.has('ArrowDown')) y -= 1;
+
+    x += this.touchMove.x;
+    y += this.touchMove.y;
 
     const pad = this.pad;
     if (pad) {

@@ -1,3 +1,5 @@
+import { IS_TOUCH } from './Input';
+
 /** Vollbild-Overlays: Startmenü und Pause. Ein Klick löst `onClick` aus. */
 export class Screens {
   private menu: HTMLDivElement;
@@ -20,16 +22,18 @@ export class Screens {
       <div id="screen-menu" class="screen">
         <h1>HOLLOW UNIT</h1>
         <h2>SEKTOR 7</h2>
-        <div class="go">KLICK ODER ENTER</div>
-        <div class="keys">
-          WASD bewegen · Leertaste springen (2×) · Shift ausweichen<br>
+        <div class="go">${IS_TOUCH ? 'TIPPEN ZUM STARTEN' : 'KLICK ODER ENTER'}</div>
+        <div class="keys">${
+          IS_TOUCH
+            ? 'Links: Daumen ziehen = laufen<br>Rechts wischen = Kamera<br>Tasten: Hieb · Schwer · Sprung (2×) · Ausweichen · Pod<br>Am Terminal: HACKEN'
+            : `WASD bewegen · Leertaste springen (2×) · Shift ausweichen<br>
           Linke Maustaste / J leicht · Rechte Maustaste / K schwer · E Pod-Feuer<br>
-          F Terminal hacken · P Pause · M Ton · Gamepad wird unterstützt
-        </div>
+          F Terminal hacken · P Pause · M Ton · Gamepad wird unterstützt`
+        }</div>
       </div>
       <div id="screen-pause" class="screen">
         <h1 style="font-size: clamp(28px, 5vw, 48px)">PAUSE</h1>
-        <div class="go">KLICK ODER ENTER ZUM FORTSETZEN</div>
+        <div class="go">${IS_TOUCH ? 'TIPPEN ZUM FORTSETZEN' : 'KLICK ODER ENTER ZUM FORTSETZEN'}</div>
       </div>`;
     document.body.appendChild(root);
     this.menu = root.querySelector('#screen-menu') as HTMLDivElement;
