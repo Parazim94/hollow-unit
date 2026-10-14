@@ -2,6 +2,9 @@ import * as THREE from 'three';
 import type { Input } from './Input';
 import type { Colliders } from './Colliders';
 import type { CameraRig } from './CameraRig';
+import type { Targets } from './Targets';
+import { Combat } from './Combat';
+import { fx } from './Fx';
 
 const RADIUS = 0.4;
 const HEIGHT = 1.8;
@@ -16,22 +19,35 @@ const DODGE_SPEED = 16;
 const DODGE_TIME = 0.22;
 const DODGE_COOLDOWN = 0.45;
 
+const MAX_HP = 100;
+const HURT_INVULN = 0.7;
+const SPAWN = new THREE.Vector3(0, 0, 4);
+
 export class Player {
   readonly mesh: THREE.Group;
-  readonly position = new THREE.Vector3(0, 0, 4);
+  readonly position = SPAWN.clone();
+  readonly velocity = new THREE.Vector3();
+  readonly maxHp = MAX_HP;
+  hp = MAX_HP;
+  /** Blickwinkel um Y (0 = +Z) */
+  facing = 0;
 
-  private velocity = new THREE.Vector3();
+  private combat: Combat;
   private onGround = true;
   private jumpsLeft = MAX_JUMPS;
-  private facing = 0;
 
   private dodgeTimer = 0;
   private dodgeCooldown = 0;
   private dodgeDir = new THREE.Vector3();
+  private hurtTimer = 0;
 
-  /** Unverwundbar während des Ausweichens (für den Kampf in Phase 3). */
+  /** Unverwundbar während des Ausweichens und kurz nach einem Treffer. */
   get invulnerable() {
-    return this.dodgeTimer > 0;
+    return this.dodgeTimer > 0 || this.hurtTimer > 0;
+  }
+
+  get dead() {
+    return this.hp <= 0;
   }
 
   constructor(
@@ -39,6 +55,7 @@ export class Player {
     private input: Input,
     private colliders: Colliders,
     private cam: CameraRig,
+    targets: Targets,
   ) {
     this.mesh = new THREE.Group();
     const body = new THREE.Mesh(
@@ -57,24 +74,53 @@ export class Player {
 
     this.mesh.add(body, visor);
     scene.add(this.mesh);
+    this.combat = new Combat(this.mesh, this, input, targets);
+  }
+
+  /** @returns true, wenn der Schaden angenommen wurde */
+  takeDamage(amount: number) {
+    if (this.dead || this.invulnerable) return false;
+    this.hp = Math.max(0, this.hp - amount);
+    this.hurtTimer = HURT_INVULN;
+    fx.shake += 0.25;
+    fx.hitstop = Math.max(fx.hitstop, 0.06);
+    return true;
+  }
+
+  private respawn() {
+    this.hp = MAX_HP;
+    this.position.copy(SPAWN);
+    this.velocity.set(0, 0, 0);
+    this.hurtTimer = 0;
+    this.dodgeTimer = 0;
+    this.jumpsLeft = MAX_JUMPS;
   }
 
   update(dt: number) {
-    const move = this.input.getMove();
+    if (import.meta.env.DEV && this.input.debugHurtPressed()) this.takeDamage(15);
+    if (this.dead && this.input.restartPressed()) this.respawn();
+
+    const move = this.dead ? { x: 0, y: 0 } : this.input.getMove();
     const yaw = this.cam.yaw;
     // Kamera-relative Richtung (Kamera blickt entlang (-sin, -cos))
-    const fx = -Math.sin(yaw);
-    const fz = -Math.cos(yaw);
+    const fx_ = -Math.sin(yaw);
+    const fz_ = -Math.cos(yaw);
     const rx = Math.cos(yaw);
     const rz = -Math.sin(yaw);
-    const wishX = rx * move.x + fx * move.y;
-    const wishZ = rz * move.x + fz * move.y;
+    const wishX = rx * move.x + fx_ * move.y;
+    const wishZ = rz * move.x + fz_ * move.y;
     const hasInput = move.x !== 0 || move.y !== 0;
 
     this.dodgeCooldown = Math.max(0, this.dodgeCooldown - dt);
+    this.hurtTimer = Math.max(0, this.hurtTimer - dt);
 
-    // Ausweichen
-    if (this.input.dodgePressed() && this.dodgeCooldown === 0 && this.dodgeTimer === 0) {
+    // Nahkampf (Eingabe gilt nur, solange man nicht ausweicht)
+    const aim = hasInput ? Math.atan2(wishX, wishZ) : null;
+    const moveScale = this.dodgeTimer > 0 ? 1 : this.combat.update(dt, aim);
+
+    // Ausweichen (bricht Angriffe ab)
+    if (!this.dead && this.input.dodgePressed() && this.dodgeCooldown === 0 && this.dodgeTimer === 0) {
+      this.combat.cancel();
       this.dodgeTimer = DODGE_TIME;
       this.dodgeCooldown = DODGE_COOLDOWN;
       if (hasInput) this.dodgeDir.set(wishX, 0, wishZ).normalize();
@@ -90,11 +136,12 @@ export class Player {
     } else {
       // Horizontale Beschleunigung Richtung Wunschgeschwindigkeit
       const accel = (this.onGround ? ACCEL : AIR_ACCEL) * dt;
-      this.velocity.x = approach(this.velocity.x, wishX * RUN_SPEED, accel);
-      this.velocity.z = approach(this.velocity.z, wishZ * RUN_SPEED, accel);
+      const speed = RUN_SPEED * moveScale;
+      this.velocity.x = approach(this.velocity.x, wishX * speed, accel);
+      this.velocity.z = approach(this.velocity.z, wishZ * speed, accel);
 
       // Springen (Doppelsprung)
-      if (this.input.jumpPressed() && this.jumpsLeft > 0) {
+      if (!this.dead && this.input.jumpPressed() && this.jumpsLeft > 0) {
         this.velocity.y = JUMP_SPEED;
         this.jumpsLeft--;
         this.onGround = false;
@@ -120,17 +167,19 @@ export class Player {
       if (this.jumpsLeft === MAX_JUMPS) this.jumpsLeft = MAX_JUMPS - 1; // von Kante gefallen
     }
 
-    // Blickrichtung zur Bewegung drehen
+    // Blickrichtung zur Bewegung drehen (nicht während eines Angriffs)
     const speed = Math.hypot(this.velocity.x, this.velocity.z);
-    if (speed > 0.5) {
+    if (speed > 0.5 && !this.combat.attacking) {
       const target = Math.atan2(this.velocity.x, this.velocity.z);
       this.facing = lerpAngle(this.facing, target, 1 - Math.exp(-18 * dt));
     }
 
     this.mesh.position.copy(this.position);
     this.mesh.rotation.y = this.facing;
-    // Beim Ausweichen leicht nach vorn kippen
-    this.mesh.rotation.x = this.dodgeTimer > 0 ? 0.5 : 0;
+    // Beim Ausweichen nach vorn kippen, bei Niederlage hinfallen
+    this.mesh.rotation.x = this.dead ? -1.45 : this.dodgeTimer > 0 ? 0.5 : 0;
+    // Nach einem Treffer blinken
+    this.mesh.visible = this.hurtTimer <= 0 || Math.floor(this.hurtTimer * 20) % 2 === 0;
   }
 }
 

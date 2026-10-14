@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import type { Input } from './Input';
+import { fx } from './Fx';
 
 const DISTANCE = 7;
 const HEIGHT_OFFSET = 1.6;
@@ -40,6 +41,15 @@ export class CameraRig {
     );
     // Nicht unter den Boden
     this.camera.position.y = Math.max(this.camera.position.y, 0.3);
+    // Kamerawackeln (Treffer)
+    if (fx.shake > 0.001) {
+      this.camera.position.x += (Math.random() - 0.5) * fx.shake;
+      this.camera.position.y += (Math.random() - 0.5) * fx.shake;
+      this.camera.position.z += (Math.random() - 0.5) * fx.shake;
+      fx.shake *= Math.exp(-10 * dt);
+    } else {
+      fx.shake = 0;
+    }
     this.camera.lookAt(this.focus);
   }
 }

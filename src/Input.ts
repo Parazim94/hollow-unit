@@ -12,9 +12,13 @@ export class Input {
   private lookY = 0;
   private padPrev: boolean[] = [];
 
-  /** Pro Frame gesetzt: Gamepad-Button wurde neu gedrückt. */
+  /** Pro Frame gesetzt aus dem Gamepad. */
   private padJump = false;
   private padDodge = false;
+  private padLight = false;
+  private padHeavy = false;
+  private padRestart = false;
+  private padPodHeld = false;
 
   constructor(canvas: HTMLElement) {
     window.addEventListener('keydown', (e) => {
@@ -27,6 +31,11 @@ export class Input {
 
     canvas.addEventListener('click', () => {
       if (document.pointerLockElement !== canvas) canvas.requestPointerLock();
+    });
+    canvas.addEventListener('contextmenu', (e) => e.preventDefault());
+    canvas.addEventListener('mousedown', (e) => {
+      // Der erste Klick fängt nur die Maus, er löst keinen Angriff aus
+      if (document.pointerLockElement === canvas) this.justPressed.add(`Mouse${e.button}`);
     });
     document.addEventListener('mousemove', (e) => {
       if (document.pointerLockElement !== canvas) return;
@@ -43,12 +52,17 @@ export class Input {
   /** Einmal pro Frame am Anfang aufrufen. */
   poll() {
     const pad = this.pad;
-    this.padJump = this.padDodge = false;
+    this.padJump = this.padDodge = this.padLight = this.padHeavy = this.padRestart = false;
+    this.padPodHeld = false;
     if (pad) {
       const down = pad.buttons.map((b) => b.pressed);
       const edge = (i: number) => down[i] && !this.padPrev[i];
       this.padJump = edge(0); // A
       this.padDodge = edge(1) || edge(5) || edge(7); // B / RB / RT
+      this.padLight = edge(2); // X
+      this.padHeavy = edge(3); // Y
+      this.padRestart = edge(9); // Start
+      this.padPodHeld = !!(down[4] || down[6]); // LB / LT
       this.padPrev = down;
     } else {
       this.padPrev = [];
@@ -101,5 +115,29 @@ export class Input {
       this.justPressed.has('ShiftRight') ||
       this.padDodge
     );
+  }
+
+  /** Leichter Angriff: linke Maustaste / J / X */
+  lightPressed() {
+    return this.justPressed.has('Mouse0') || this.justPressed.has('KeyJ') || this.padLight;
+  }
+
+  /** Schwerer Angriff: rechte Maustaste / K / Y */
+  heavyPressed() {
+    return this.justPressed.has('Mouse2') || this.justPressed.has('KeyK') || this.padHeavy;
+  }
+
+  /** Pod-Schuss (gehalten): E / LB / LT */
+  podHeld() {
+    return this.keys.has('KeyE') || this.padPodHeld;
+  }
+
+  restartPressed() {
+    return this.justPressed.has('KeyR') || this.padRestart;
+  }
+
+  /** Nur zum Testen im Dev-Modus: H verursacht Schaden. */
+  debugHurtPressed() {
+    return this.justPressed.has('KeyH');
   }
 }
